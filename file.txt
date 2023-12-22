@@ -1,0 +1,2 @@
+6. Read a file and pass it to a function which checks for the given input string ( case insensitive check). If the given string is found, the function should return True. Create another function which will read the input file and scan it to get the count of each word in it. After the process is completed print each word  along with the number of times it occurred in the file.
+
