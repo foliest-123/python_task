@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
-import time
+from pyspark.sql import Row
+from datetime import datetime, date
+from pyspark.sql import SparkSession
+
 
 # 1
 # sub_list = ["h", "i", "j"]
@@ -10,8 +13,11 @@ def extend_and_addSubList():
 
     extend_list =  ["a", "b", ["c", ["d", "e", ["f", "g"], "k"], "l"], "m", "n"]
     sub_list = ["h", "i", "j"]
+    
+    for i in range(len(sub_list)):
+     extend_list[2][1][2].extend([sub_list[i]])  # Adding sub_list at a specific nested level
 
-    print(extend_list[3][0])
+    print(extend_list)
 
 
 # 2. Convert two lists into a dictionary
@@ -105,33 +111,14 @@ class reading_files():
 # Analyze the time taken for above operations using one wider dataset(large no of columns) and one taller dataset(Large no. of rows)
 # Read dataset as spark dataframe
 
-def iteration_performance():
+def Spark_dataframe():
     
-    #small   Execution_time  = --- 0.027309894561767578 seconds ---
-    data = {
-    "calories": [420, 380, 390],
-    "duration": [50, 40, 45]
-    }
-    #load data into a DataFrame object:
-    small_df = pd.DataFrame(data)  
-    # for index , row in small_df.iterrows():
-    #     print(small_df)
-    # print("--- %s seconds ---" % (time.time() -  start_time))
-    
-    #high execution_time = --- 9.177774429321289 --- to --- 10.407198667526245 seconds ---
-    num_rows = 10000000
-    num_cols = 10
-    data = {}
-    data = {}
-    start_time = time.time()
-    for i in range(num_cols):
-         col_name = f'col{i+1}'
-         data[col_name] = np.random.randint(low=0, high=100, size=num_rows)
-    large_df = pd.DataFrame(data)
-    print(large_df)
-    print("--- %s seconds ---" % (time.time() -  start_time))
-    
+    spark = SparkSession.builder.appName("ExampleApp").getOrCreate()
 
+    dfs = spark.read.json("employee.json")
+
+    data_collect = dfs.collect()
+    print(data_collect)
 
 
 
@@ -156,4 +143,4 @@ def iteration_performance():
 # rename_key()
 # min_from_dict()
 # reading_files.count_word("file.txt")
-iteration_performance()
+# Spark_dataframe()
