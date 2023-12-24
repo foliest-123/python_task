@@ -3,6 +3,10 @@ import numpy as np
 from pyspark.sql import Row
 from datetime import datetime, date
 from pyspark.sql import SparkSession
+from functools import reduce
+import math
+import random as rd
+
 
 
 # 1
@@ -112,13 +116,142 @@ class reading_files():
 # Read dataset as spark dataframe
 
 def Spark_dataframe():
+    spark = SparkSession.builder.getOrCreate()
+    df = spark.createDataFrame(pd.read_csv('industry_data.csv'))
+    df.iterrows()
+
+
+# 8
+def lambda_funtion():
+    names = ["vijay" , "ajai" , "rahul" , "bob" , "kumar" , "ramesh"]
+    numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     
-    spark = SparkSession.builder.appName("ExampleApp").getOrCreate()
+    # for loop
+    for i in names:
+        print(i)
+    
+    # Using map with lambda to square each number
+    map_names = list(map(lambda x:x,names))
+    print(map_names.index("vijay"))
 
-    dfs = spark.read.json("employee.json")
+    # # Using filter with lambda to filter even numbers
+    namewith_A = list(filter(lambda x: 'a' in x, names))
+    print("Contains A: ", namewith_A)
 
-    data_collect = dfs.collect()
-    print(data_collect)
+    # # Using reduce with lambda to find the sum of all numbers
+    sum = reduce(lambda x, y: x + y, names)
+    print("sum of all numbers:", sum) 
+
+# 9.
+
+def sort_sorted():
+    
+    # sort : only for list
+    # sorted : for any sequence
+    #but both working is same
+    
+    names = ["ajai" , "mohan" , "babu" , "cummins"]
+    print(sorted(names))
+    words = ["Geeks", "For", "Geeks"]
+ 
+# Sorting list of strings
+    words.sort()
+    
+    print(words)
+
+
+#10. OOPS concepts. 
+
+class greeting:
+    def __init__(self ,name , age):
+        print("Hello,",name,"your age is,",age)
+    
+# greeting1 = greeting("vijay",20)
+
+class circle():
+    def __init__(self, radius):
+        self.radius = radius
+    
+    def area(self):
+        print(math.pi * self.radius ** 2)
+    
+class rectangle():
+    def __init__(self , length ,width):
+        self.length = length
+        self.width = width
+        
+    def area(self):
+        print(self.length * self.width)
+        
+
+# 11. Write a python program that randomly generates a 5 digit number. 
+# The user has a maximum of 5 tries to guess the randomly generated number.
+
+def find_number():
+    guess_number = str(rd.randint(10000 , 100000))
+    wrong = "A"
+    wrong_position = "B"
+    correct = "C"
+    print(guess_number)
+    
+    for i in range(0,5):
+        indicate = ""
+        print(" Attempt = " ,i ,"\n" ,"Remaining = " ,5-i)
+        Guessed_number = input("Enter 5 digit: ")
+        if int(Guessed_number) == guess_number:
+            print(correct)
+            break
+        else:
+            for i in range(len(Guessed_number)):
+                if Guessed_number[i] in guess_number:
+                    indicate+=wrong_position
+                else:
+                    indicate+=wrong
+            print(indicate)
+
+# 11.
+        
+def working_data():
+    data= [
+    {"roll_no": 1,"name": "John", "games": ["cricket", "football"],
+    "marks": {"maths": 90, "science": 93, "history": 81}, "rank": 1},
+    {"roll_no": 2,"name": "Mick", "games": ["football", "hockey"],
+    "marks": {"maths": 95, "science": 86, "cs": 70}, "rank": 2},
+    {"roll_no": 3,"name": "June", "games": ["badminton", None],
+    "marks": {"maths": 92, "science": 92, "geography": 78}, "rank": 3},
+    {"roll_no": 4,"name": "Adam", "games": ["soccer", "badminton"],
+    "marks": { "science": 91, "cs": 82},"rank": 4},
+    {"roll no": 5,"name": "Robb", "games": ["cricket", None],
+    "marks": {"maths": 88, "science": 90, "economics": 84}, "rank": 5},
+    {"roll_no": 6,"name": "Arya", "games": ["football", "hockey"],
+    "marks": {"maths": 89, "science": 88, "history": 97}, "rank": 6}
+    ]
+    # 1.
+    cs_data = list(filter(lambda x: 'cs' in x['marks'] , data))
+    # print(cs_data)
+    # 2.
+    count = 0
+    for item in data:
+         if "maths" in item["marks"]:
+            item["marks"]["maths"] *= 3
+         if "science" in item["marks"]:
+             item["marks"]["science"] *= 2   
+         for subject, mark in item["marks"].items():
+            item["percentage"] = (mark / 600) * 100
+         if item["games"] == None:
+             data.pop(data["games"])
+    for student in data:
+        student['games'] = [game for game in student['games'] if game is not None]
+    print(data)
+    
+
+
+
+
+
+
+
+
 
 
 
@@ -144,3 +277,9 @@ def Spark_dataframe():
 # min_from_dict()
 # reading_files.count_word("file.txt")
 # Spark_dataframe()
+# lambda_funtion()
+# sort_sorted()
+# circle = circle(5)
+# rectangle  = rectangle(4,3)
+# find_number()
+working_data()
