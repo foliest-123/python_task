@@ -221,7 +221,7 @@ def working_data():
     "marks": {"maths": 92, "science": 92, "geography": 78}, "rank": 3},
     {"roll_no": 4,"name": "Adam", "games": ["soccer", "badminton"],
     "marks": { "science": 91, "cs": 82},"rank": 4},
-    {"roll no": 5,"name": "Robb", "games": ["cricket", None],
+    {"roll_no": 5,"name": "Robb", "games": ["cricket", None],
     "marks": {"maths": 88, "science": 90, "economics": 84}, "rank": 5},
     {"roll_no": 6,"name": "Arya", "games": ["football", "hockey"],
     "marks": {"maths": 89, "science": 88, "history": 97}, "rank": 6}
@@ -230,7 +230,6 @@ def working_data():
     cs_data = list(filter(lambda x: 'cs' in x['marks'] , data))
     # print(cs_data)
     # 2.
-    count = 0
     for item in data:
          if "maths" in item["marks"]:
             item["marks"]["maths"] *= 3
@@ -238,11 +237,21 @@ def working_data():
              item["marks"]["science"] *= 2   
          for subject, mark in item["marks"].items():
             item["percentage"] = (mark / 600) * 100
-         if item["games"] == None:
-             data.pop(data["games"])
     for student in data:
         student['games'] = [game for game in student['games'] if game is not None]
-    print(data)
+    # print(data)
+    
+    # 3.
+    data_df = pd.DataFrame(data)
+    # data_df['new_Rank'] = data_df.rank(method='dense').astype(int)
+    data_df["pre_rank"] = data_df["rank"]
+    data_df['new_rank'] = data_df.groupby('percentage', sort=True).ngroup()+1
+    data_df = data_df.sort_values(by="new_rank")
+    data_df['change_in_ranks'] = data_df.apply([lambda row:1 if row['new_rank'] < row["pre_rank"] 
+                                               else -1 if row['new_rank'] > row["pre_rank"]
+                                              else '-'] , axis=1)
+
+    print(data_df)
     
 
 
