@@ -238,20 +238,20 @@ def working_data():
          for subject, mark in item["marks"].items():
             item["percentage"] = (mark / 600) * 100
     for student in data:
-        student['games'] = [game for game in student['games'] if game is not None]
-    # print(data)
+        student['games'] = [game for game in student["games"] if game is not None]
+    print(data)
     
     # 3.
     data_df = pd.DataFrame(data)
-    # data_df['new_Rank'] = data_df.rank(method='dense').astype(int)
     data_df["pre_rank"] = data_df["rank"]
     data_df['new_rank'] = data_df.groupby('percentage', sort=True).ngroup()+1
     data_df = data_df.sort_values(by="new_rank")
     data_df['change_in_ranks'] = data_df.apply([lambda row:1 if row['new_rank'] < row["pre_rank"] 
                                                else -1 if row['new_rank'] > row["pre_rank"]
                                               else '-'] , axis=1)
+    data_df_rank = data_df[['name', 'percentage' , 'pre_rank' , 'new_rank' , 'change_in_ranks']].copy()
 
-    print(data_df)
+    print(data_df_rank)
     
 
 
