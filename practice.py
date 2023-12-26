@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 import json
 from collections import defaultdict
-
+import sys
 
 
 # 1
@@ -86,7 +86,18 @@ def min_from_dict():
     'Math': 65,
     'history': 75
     }
-    print(min(sample_dict))
+    min_value = None
+    min_key = None
+
+    for key, value in sample_dict.items():
+        if min_value is None or value < min_value:
+            min_value = value
+            min_key = key
+
+
+    min_pair = {min_key: min_value}
+    print(min_pair)
+        
 
 
 # 6. Read a file and pass it to a function which checks for the given input string 
@@ -175,8 +186,8 @@ class circle():
     def __init__(self, radius):
         self.radius = radius
     
-    def area(self):
-        print(math.pi * self.radius ** 2)
+    def area(self ,name):
+        print(math.pi * self.radius ** 2 ,name)
     
 class rectangle():
     def __init__(self , length ,width):
@@ -192,11 +203,10 @@ class rectangle():
 
 def find_number():
     guess_number = str(rd.randint(10000 , 100000))
-    number_list = [int(char) for char in guess_number]
     wrong = "A"
     wrong_position = "B"
     correct = "C"
-    print(guess_number)
+    print(guess_number) #45432   #43213
     
     for i in range(0,5):
         indicate = ""
@@ -207,12 +217,17 @@ def find_number():
             break
         else:
             for i in range(len(Guessed_number)):
-                if int(Guessed_number[i]) == number_list[i]:
+                if (Guessed_number[i]) == guess_number[i]:
                     indicate+=correct
                 elif Guessed_number[i] not in guess_number:
                     indicate+=wrong
-                else:
+                elif Guessed_number[i] not in guess_number:
                     indicate+=wrong_position
+        if indicate == "CCCCC":
+            print("correct")
+            break
+                
+                
             print(indicate)
         print("Try exceeded The number is: " , guess_number)
 
@@ -272,19 +287,19 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://postgres:1234@lo
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Optional but recommended for performance
 
 db = SQLAlchemy(app)
-# class Metrics(db.Model):
-#     __tablename__ = 'dataset_metrics'
-#     refresh_count = db.Column(db.Integer, primary_key=True)
-#     new_row_count = db.Column(db.Integer)
-#     metric_threshold = db.Column(db.Integer)
-#     Window_size = db.Column(db.Integer)
-#     def __init__(self, refresh_count,new_row_count, metric_threshold ,Window_size):
-#         self.refresh_count = refresh_count
-#         self.new_row_count = new_row_count
-#         self.metric_threshold = metric_threshold
-#         self.Window_size = Window_size
-# with app.app_context():
-#     db.create_all()
+class Metrics(db.Model):
+    __tablename__ = 'dataset_metrics'
+    refresh_count = db.Column(db.Integer, primary_key=True)
+    new_row_count = db.Column(db.Integer)
+    metric_threshold = db.Column(db.Integer)
+    Window_size = db.Column(db.Integer)
+    def __init__(self, refresh_count,new_row_count, metric_threshold ,Window_size):
+        self.refresh_count = refresh_count
+        self.new_row_count = new_row_count
+        self.metric_threshold = metric_threshold
+        self.Window_size = Window_size
+with app.app_context():
+    db.create_all()
     
 # refresh_id = 1
 # @app.route("/")
@@ -401,15 +416,15 @@ def store_details():
         issue_count_dataset_level  =AttributeIssueCount.query.with_entities(func.sum(AttributeIssueCount.issue_count)).scalar()
         issue_count_attribute_level  = DatasetIssueCount.query.with_entities(func.sum(DatasetIssueCount.issue_count)).scalar()
        
-        unique_integration = db.session.query(AttributeIssueCount.tenant_id).distinct().all()
-        unique_integration_ids = [result.tenant_id for result in unique_integration]
+        unique_integration = db.session.query(AttributeIssueCount.integration_id).distinct().all()
+        unique_integration_ids = [result.integration_id for result in unique_integration]
         
         for integ_id in unique_integration_ids:
             attr_details = json.dumps(calculate_issue_details_count(attr_issue_value , integ_id))
             print((attr_details))
             dataset_details = json.dumps(calculate_issue_details_count(dataset_issue_value , integ_id))
             print(dataset_details)
-            IntegId_Row =db.session.query(AttributeIssueCount).filter_by(tenant_id=integ_id).first()
+            IntegId_Row =db.session.query(AttributeIssueCount).filter_by(integration_id=integ_id).first()
             values_issue_count = DatasourceIssueCount(
             env_id=IntegId_Row.env_id,
             tenant_id=IntegId_Row.tenant_id,
@@ -422,17 +437,66 @@ def store_details():
         )
             db.session.add(values_issue_count)
             db.session.commit()
-            
-            
-            
+                     
 def calculate_issue_details_count(rows, integration_id):
         details_count = defaultdict(int)
         for row in rows:
-            if row.tenant_id == integration_id:
+            if row.integration_id == integration_id:
                 issue_details = row.issue_details
                 for key, value in issue_details.items():
                     details_count[key] += value
         return details_count
+
+
+
+# 15 . Write a program to give the below dict 
+# as output from the data of attribute_issue_count, dataset_issue_count, datasource_issue_count tables.
+# {"name":"packed-chart","children":
+#     [{"env_id":1485,"children":[{"integration_id":2566,"children":[{"data_set_id":55396,"children":
+#         [{"meta_data_id":322386,"size":2},{"meta_data_id":322382,"size":1},{"meta_data_id":322388,"size":1},
+#          {"meta_data_id":322384,"size":1}],"value":3},{"data_set_id":55397,"children":[{"meta_data_id":322385,
+#        "size":2},{"meta_data_id":322383,"size":1},{"meta_data_id":322393,"size":1},{"meta_data_id":322387,"size":1}],
+#         "value":3}],"value":16}],"value":16}]}
+
+def value_size_threetables():
+       data =  {
+        "name": "packed-chart",
+        "children": [
+            {
+            "env_id": 1485,
+            "children": [
+                {
+                "integration_id": 2566,
+                "children": [
+                    {
+                    "data_set_id": 55396,
+                    "children": [
+                        { "meta_data_id": 322386, "size": 2 },
+                        { "meta_data_id": 322382, "size": 1 },
+                        { "meta_data_id": 322388, "size": 1 },
+                        { "meta_data_id": 322384, "size": 1 }
+                    ], 
+                    "value": 3
+                    },
+                    {
+                    "data_set_id": 55397,
+                    "children": [
+                        { "meta_data_id": 322385, "size": 2 },
+                        { "meta_data_id": 322383, "size": 1 },
+                        { "meta_data_id": 322393, "size": 1 },
+                        { "meta_data_id": 322387, "size": 1 }
+                    ],
+                    "value": 3
+                    }
+                ],
+                "value": 16
+                }
+            ],
+            "value": 16
+            }
+        ]
+        }
+       print(data["children"])
 
         
                         
@@ -461,7 +525,9 @@ def calculate_issue_details_count(rows, integration_id):
 # lambda_funtion()
 # sort_sorted()
 # circle = circle(5)
+# circle.area("vijay")
 # rectangle  = rectangle(4,3)
-# find_number()
+find_number()
 # working_data()
-store_details()
+# store_details()
+# value_size_threetables()
