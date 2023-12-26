@@ -7,6 +7,10 @@ from flask import Flask, request, jsonify
 from sqlalchemy import create_engine, Column, Integer, String, JSON, TIMESTAMP
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
+import json
+from collections import defaultdict
+
+
 
 # 1
 # sub_list = ["h", "i", "j"]
@@ -188,6 +192,7 @@ class rectangle():
 
 def find_number():
     guess_number = str(rd.randint(10000 , 100000))
+    number_list = [int(char) for char in guess_number]
     wrong = "A"
     wrong_position = "B"
     correct = "C"
@@ -198,15 +203,18 @@ def find_number():
         print(" Attempt = " ,i ,"\n" ,"Remaining = " ,5-i)
         Guessed_number = input("Enter 5 digit: ")
         if int(Guessed_number) == guess_number:
-            print(correct)
+            print("Entered number is correct...")
             break
         else:
             for i in range(len(Guessed_number)):
-                if Guessed_number[i] in guess_number:
-                    indicate+=wrong_position
-                else:
+                if int(Guessed_number[i]) == number_list[i]:
+                    indicate+=correct
+                elif Guessed_number[i] not in guess_number:
                     indicate+=wrong
+                else:
+                    indicate+=wrong_position
             print(indicate)
+        print("Try exceeded The number is: " , guess_number)
 
 # 12.
         
@@ -361,21 +369,79 @@ class DatasetIssueCount(db.Model):
         self.issue_count = issue_count
         self.issue_details = issue_details
         self.env_id = env_id
+class DatasourceIssueCount(db.Model):
+    __tablename__ = 'datasource_issue_count'
+
+    issue_count_id =db.Column(Integer, primary_key=True ,autoincrement=True)
+    env_id = db.Column(Integer, nullable=False)
+    tenant_id = db.Column(Integer, nullable=False)
+    integration_id = db.Column(Integer, nullable=False)
+    created_month = db.Column(TIMESTAMP, nullable=False)
+    issue_count_dataset_level = db.Column(Integer, nullable=False)
+    issue_details_dataset_level = db.Column(JSON, nullable=False)
+    issue_count_attribute_level = db.Column(Integer, nullable=False)
+    issue_details_attribute_level = db.Column(Integer, nullable=False)
+
+    def __init__(self, env_id , tenant_id, integration_id, created_month,
+                 issue_count_dataset_level, issue_details_dataset_level,
+                 issue_count_attribute_level, issue_details_attribute_level,):
+        self.env_id = env_id
+        self.tenant_id = tenant_id
+        self.integration_id = integration_id
+        self.created_month = created_month
+        self.issue_count_dataset_level = issue_count_dataset_level
+        self.issue_details_dataset_level = issue_details_dataset_level
+        self.issue_count_attribute_level = issue_count_attribute_level
+        self.issue_details_attribute_level = issue_details_attribute_level
 
 def store_details():
     with app.app_context(): 
         attr_issue_value = AttributeIssueCount.query.all()
         dataset_issue_value = DatasetIssueCount.query.all()
         issue_count_dataset_level  =AttributeIssueCount.query.with_entities(func.sum(AttributeIssueCount.issue_count)).scalar()
-        issue_count_attribute_level = DatasetIssueCount.query.with_entities(func.sum(DatasetIssueCount.issue_count)).scalar()
-        count_per_issue = db.session.query(
-            DatasetIssueCount.issue_count,
-            func.count(DatasetIssueCount.issue_count).label('count_per_issue')
-        ).group_by(DatasetIssueCount.issue_count).all()
-
-            
-        print(count_per_issue)
+        issue_count_attribute_level  = DatasetIssueCount.query.with_entities(func.sum(DatasetIssueCount.issue_count)).scalar()
+       
+        unique_integration = db.session.query(AttributeIssueCount.tenant_id).distinct().all()
+        unique_integration_ids = [result.tenant_id for result in unique_integration]
+        attr_issue_details_count = defaultdict(int)
+        count = 0
+        while count < len(unique_integration_ids):
+            for row in attr_issue_value:
+                if row.tenant_id == unique_integration_ids[count]:
+                    issue_details = row.issue_details 
+                    attr_issue_details_count['Integration_id'] =  unique_integration_ids[count]
+                    for key, value in issue_details.items():
+                       attr_issue_details_count[key] += value
+            print(attr_issue_details_count)
+            count += 1
+                
+        dataset_issue_details_count = defaultdict(int)
+        for row in dataset_issue_value:
+            issue_details = row.issue_details 
+            for key, value in issue_details.items():
+                dataset_issue_details_count[key] += value  
+                
+                
+        issue_details_attribute_level  = json.dumps(dataset_issue_details_count)
+                
+        values_issue_count = DatasourceIssueCount(
+            env_id=12,
+            tenant_id=12,
+            integration_id=1,
+            created_month='2023-11-01 00:00:00.000000',
+            issue_count_dataset_level= issue_count_dataset_level,
+            issue_details_dataset_level = attr_issue_details_count,
+            issue_count_attribute_level=issue_count_attribute_level,
+            issue_details_attribute_level = issue_details_attribute_level
+        )
+        # db.session.add(values_issue_count)
+        # db.session.commit()
+        print(unique_integration)
         
+
+        # Convert aggregated_values dictionary to JSON
+        
+                        
 
 
 
@@ -402,6 +468,6 @@ def store_details():
 # sort_sorted()
 # circle = circle(5)
 # rectangle  = rectangle(4,3)
-# find_number()
+find_number()
 # working_data()
-store_details()
+# store_details()
