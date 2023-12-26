@@ -1,13 +1,12 @@
-import pandas as pd
-import numpy as np
-from pyspark.sql import Row
+import pandas as pd, numpy as np
+from pyspark.sql import Row, SparkSession
 from datetime import datetime, date
-from pyspark.sql import SparkSession
 from functools import reduce
-import math
-import random as rd
-
-
+import math, random as rd
+from flask import Flask, request, jsonify
+from sqlalchemy import create_engine, Column, Integer, String, JSON, TIMESTAMP
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import func
 
 # 1
 # sub_list = ["h", "i", "j"]
@@ -209,7 +208,7 @@ def find_number():
                     indicate+=wrong
             print(indicate)
 
-# 11.
+# 12.
         
 def working_data():
     data= [
@@ -227,7 +226,7 @@ def working_data():
     "marks": {"maths": 89, "science": 88, "history": 97}, "rank": 6}
     ]
     # 1.
-    cs_data = list(filter(lambda x: 'cs' in x['marks'] , data))
+    cs_data = list(filter(lambda row: 'cs' in row['marks'] , data))
     # print(cs_data)
     # 2.
     for item in data:
@@ -253,17 +252,130 @@ def working_data():
 
     print(data_df_rank)
     
+    
+    
 
 
+# 13. Get the following 3 parameters from a simple flask API. 
+# Each time the API is called, it is considered as a new refresh.
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://postgres:1234@localhost/sample_test'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Optional but recommended for performance
+
+db = SQLAlchemy(app)
+# class Metrics(db.Model):
+#     __tablename__ = 'dataset_metrics'
+#     refresh_count = db.Column(db.Integer, primary_key=True)
+#     new_row_count = db.Column(db.Integer)
+#     metric_threshold = db.Column(db.Integer)
+#     Window_size = db.Column(db.Integer)
+#     def __init__(self, refresh_count,new_row_count, metric_threshold ,Window_size):
+#         self.refresh_count = refresh_count
+#         self.new_row_count = new_row_count
+#         self.metric_threshold = metric_threshold
+#         self.Window_size = Window_size
+# with app.app_context():
+#     db.create_all()
+    
+# refresh_id = 1
+# @app.route("/")
+# def get_param(methods=["GET"]):
+#     global refresh_id
+#     base_rowcount = 1000
+#     last_row = Metrics.query.order_by(Metrics.refresh_count.desc()).first()
+#     if last_row is not None:
+#         refresh_id = last_row.refresh_count + 1
+#         new_row_count = int(request.args.get('new_row_count'))
+#         metric_threshold = int(request.args.get('metric_threshold'))
+#         Window_size = int(request.args.get('Window_size'))
+#         new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size)
+#         db.session.add(new_metric)
+#         db.session.commit()
+#         average_rowCount = Metrics.query.with_entities(func.avg(Metrics.new_row_count).label("avg_rowCount")).first()
+#         row_deviation = ((average_rowCount[0] - base_rowcount) / base_rowcount) * 100
+#         print(row_deviation ," " , metric_threshold)
+#         if row_deviation >= metric_threshold:
+#             return "Threshold Alert...!"
+#     else:
+#         new_row_count = int(request.args.get('new_row_count'))
+#         metric_threshold = int(request.args.get('metric_threshold'))
+#         Window_size = int(request.args.get('Window_size'))
+#         if new_row_count is not None and metric_threshold is not None and Window_size is not None:
+#             new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size)
+#             db.session.add(new_metric)
+#             db.session.commit()
+#     return jsonify({
+#         "refresh_id": refresh_id,
+#         "row": new_row_count,
+#         "threshold": metric_threshold,
+#         "window_size": Window_size
+#     })
+# if __name__ == "__main__":
+#     app.run()
 
 
+# 14 . Write a python program to store total issue count and aggregated issue details of attribute_issue_count and  
+# dataset_issue_count tables in datasource_issue_count table  appropriate columns [issue_count_dataset_level,
+# issue_details_dataset_level, issue_count_attribute_level, issue_details_attribute_level]
+class AttributeIssueCount(db.Model):
+    __tablename__ = 'attribute_issue_count'
 
+    issue_count_id = db.Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(Integer, nullable=False)
+    integration_id = db.Column(Integer, nullable=False)
+    meta_data_id = db.Column(Integer, nullable=False)
+    created_month = db.Column(TIMESTAMP, nullable=False)
+    issue_count = db.Column(Integer, nullable=False)
+    issue_details = db.Column(JSON, nullable=False)
+    data_set_id = db.Column(Integer, nullable=False)
+    env_id = db.Column(Integer, nullable=False)
 
+    def __init__(self, tenant_id, integration_id, meta_data_id, created_month, issue_count, issue_details, data_set_id, env_id):
+        self.tenant_id = tenant_id
+        self.integration_id = integration_id
+        self.meta_data_id = meta_data_id
+        self.created_month = created_month
+        self.issue_count = issue_count
+        self.issue_details = issue_details
+        self.data_set_id = data_set_id
+        self.env_id = env_id
 
+class DatasetIssueCount(db.Model):
+    __tablename__ = 'dataset_issue_count'
 
+    issue_count_id =db.Column(Integer, primary_key=True ,autoincrement=True)
+    tenant_id = db.Column(Integer, nullable=False)
+    integration_id = db.Column(Integer, nullable=False)
+    data_set_id = db.Column(Integer, nullable=False)
+    created_month = db.Column(TIMESTAMP, nullable=False)
+    issue_count = db.Column(Integer, nullable=False)
+    issue_details = db.Column(JSON, nullable=False)
+    env_id = db.Column(Integer, nullable=False)
 
+    def __init__(self, tenant_id, integration_id, data_set_id, created_month, issue_count, issue_details, env_id):
+        self.tenant_id = tenant_id
+        self.integration_id = integration_id
+        self.data_set_id = data_set_id
+        self.created_month = created_month
+        self.issue_count = issue_count
+        self.issue_details = issue_details
+        self.env_id = env_id
 
+def store_details():
+    with app.app_context(): 
+        attr_issue_value = AttributeIssueCount.query.all()
+        dataset_issue_value = DatasetIssueCount.query.all()
+        issue_count_dataset_level  =AttributeIssueCount.query.with_entities(func.sum(AttributeIssueCount.issue_count)).scalar()
+        issue_count_attribute_level = DatasetIssueCount.query.with_entities(func.sum(DatasetIssueCount.issue_count)).scalar()
+        count_per_issue = db.session.query(
+            DatasetIssueCount.issue_count,
+            func.count(DatasetIssueCount.issue_count).label('count_per_issue')
+        ).group_by(DatasetIssueCount.issue_count).all()
 
+            
+        print(count_per_issue)
+        
 
 
 
@@ -291,4 +403,5 @@ def working_data():
 # circle = circle(5)
 # rectangle  = rectangle(4,3)
 # find_number()
-working_data()
+# working_data()
+store_details()
