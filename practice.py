@@ -403,43 +403,37 @@ def store_details():
        
         unique_integration = db.session.query(AttributeIssueCount.tenant_id).distinct().all()
         unique_integration_ids = [result.tenant_id for result in unique_integration]
-        attr_issue_details_count = defaultdict(int)
-        count = 0
-        while count < len(unique_integration_ids):
-            for row in attr_issue_value:
-                if row.tenant_id == unique_integration_ids[count]:
-                    issue_details = row.issue_details 
-                    attr_issue_details_count['Integration_id'] =  unique_integration_ids[count]
-                    for key, value in issue_details.items():
-                       attr_issue_details_count[key] += value
-            print(attr_issue_details_count)
-            count += 1
-                
-        dataset_issue_details_count = defaultdict(int)
-        for row in dataset_issue_value:
-            issue_details = row.issue_details 
-            for key, value in issue_details.items():
-                dataset_issue_details_count[key] += value  
-                
-                
-        issue_details_attribute_level  = json.dumps(dataset_issue_details_count)
-                
-        values_issue_count = DatasourceIssueCount(
-            env_id=12,
-            tenant_id=12,
-            integration_id=1,
-            created_month='2023-11-01 00:00:00.000000',
-            issue_count_dataset_level= issue_count_dataset_level,
-            issue_details_dataset_level = attr_issue_details_count,
-            issue_count_attribute_level=issue_count_attribute_level,
-            issue_details_attribute_level = issue_details_attribute_level
-        )
-        # db.session.add(values_issue_count)
-        # db.session.commit()
-        print(unique_integration)
         
+        for integ_id in unique_integration_ids:
+            attr_details = json.dumps(calculate_issue_details_count(attr_issue_value , integ_id))
+            print((attr_details))
+            dataset_details = json.dumps(calculate_issue_details_count(dataset_issue_value , integ_id))
+            print(dataset_details)
+            IntegId_Row =db.session.query(AttributeIssueCount).filter_by(tenant_id=integ_id).first()
+            values_issue_count = DatasourceIssueCount(
+            env_id=IntegId_Row.env_id,
+            tenant_id=IntegId_Row.tenant_id,
+            integration_id=IntegId_Row.integration_id,
+            created_month=IntegId_Row.created_month,
+            issue_count_dataset_level= issue_count_dataset_level,
+            issue_details_dataset_level = attr_details,
+            issue_count_attribute_level=issue_count_attribute_level,
+            issue_details_attribute_level = dataset_details
+        )
+            db.session.add(values_issue_count)
+            db.session.commit()
+            
+            
+            
+def calculate_issue_details_count(rows, integration_id):
+        details_count = defaultdict(int)
+        for row in rows:
+            if row.tenant_id == integration_id:
+                issue_details = row.issue_details
+                for key, value in issue_details.items():
+                    details_count[key] += value
+        return details_count
 
-        # Convert aggregated_values dictionary to JSON
         
                         
 
@@ -468,6 +462,6 @@ def store_details():
 # sort_sorted()
 # circle = circle(5)
 # rectangle  = rectangle(4,3)
-find_number()
+# find_number()
 # working_data()
-# store_details()
+store_details()
