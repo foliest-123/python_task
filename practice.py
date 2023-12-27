@@ -257,7 +257,7 @@ def working_data():
     {"roll_no": 3,"name": "June", "games": ["badminton", None],
     "marks": {"maths": 92, "science": 92, "geography": 78}, "rank": 3},
     {"roll_no": 4,"name": "Adam", "games": ["soccer", "badminton"],
-    "marks": { "science": 91, "cs": 82},"rank": 4},
+    "marks": { "maths": 86 ,"science": 91, "cs": 82},"rank": 4},
     {"roll_no": 5,"name": "Robb", "games": ["cricket", None],
     "marks": {"maths": 88, "science": 90, "economics": 84}, "rank": 5},
     {"roll_no": 6,"name": "Arya", "games": ["football", "hockey"],
@@ -268,20 +268,25 @@ def working_data():
     # print(cs_data)
     # 2.
     for item in data:
-         if "maths" in item["marks"]:
-            item["marks"]["maths"] *= 3
-         if "science" in item["marks"]:
-             item["marks"]["science"] *= 2   
-         for subject, mark in item["marks"].items():
-            item["percentage"] = (mark / 600) * 100
+        total_marks = 0
+        if 'maths' in item['marks']:
+            total_marks += 3 * item['marks']['maths']
+        if 'science' in item['marks']:
+            total_marks += 2 * item['marks']['science']
+        for subject, marks in item['marks'].items():
+            if subject not in ['maths', 'science']:
+                total_marks += marks
+        item["total_mark"] = total_marks
+
+        item["percentage"] = (item["total_mark"] / 600) * 100
     for student in data:
         student['games'] = [game for game in student["games"] if game is not None]
-    print(data)
+    # print(data)
     
     # 3.
     data_df = pd.DataFrame(data)
     data_df["pre_rank"] = data_df["rank"]
-    data_df['new_rank'] = data_df.groupby('percentage', sort=True).ngroup()+1
+    data_df['new_rank'] = data_df.groupby("total_mark", sort=True).ngroup()+1
     data_df = data_df.sort_values(by="new_rank")
     data_df['change_in_ranks'] = data_df.apply([lambda row:1 if row['new_rank'] < row["pre_rank"] 
                                                else -1 if row['new_rank'] > row["pre_rank"]
@@ -561,6 +566,6 @@ def value_size_threetables():
 # circle.area("vijay")
 # rectangle  = rectangle(4,3)
 # find_number()
-# working_data()
+working_data()
 # store_details()
-value_size_threetables()
+# value_size_threetables()
