@@ -1,0 +1,38 @@
+{
+        "name": "packed-chart",
+        "children": [
+            {
+            "env_id": 1485,
+            "children": [
+                {
+                "integration_id": 2566,
+                "children": [
+                    {
+                    "data_set_id": 55396,
+                    "children": [
+                        { "meta_data_id": 322386, "size": 2 },
+                        { "meta_data_id": 322382, "size": 1 },
+                        { "meta_data_id": 322388, "size": 1 },
+                        { "meta_data_id": 322384, "size": 1 }
+                    ], 
+                    "value": 3
+                    },
+                    {
+                    "data_set_id": 55397,
+                    "children": [
+                        { "meta_data_id": 322385, "size": 2 },
+                        { "meta_data_id": 322383, "size": 1 },
+                        { "meta_data_id": 322393, "size": 1 },
+                        { "meta_data_id": 322387, "size": 1 }
+                    ],
+                    "value": 3
+                    }
+                ],
+                "value": 16
+                }
+                
+            ],
+            "value": 16
+            }
+        ]
+        }

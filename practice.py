@@ -1,6 +1,6 @@
 import pandas as pd, numpy as np
 from pyspark.sql import Row, SparkSession
-from datetime import datetime, date
+import time
 from functools import reduce
 import math, random as rd
 from flask import Flask, request, jsonify
@@ -127,12 +127,27 @@ class reading_files():
             
 # 7. Explore the difference between iterrows(), itertuples(), apply(), map()
 # Analyze the time taken for above operations using one wider dataset(large no of columns) and one taller dataset(Large no. of rows)
-# Read dataset as spark dataframe
+# Read dataset as pandas dataframe
 
-def Spark_dataframe():
-    spark = SparkSession.builder.getOrCreate()
-    df = spark.createDataFrame(pd.read_csv('industry_data.csv'))
-    df.iterrows()
+def pandas_dataframe():
+            read_data = pd.read_csv('industry_data.csv')
+            itter_df = pd.DataFrame(read_data)
+            start_time = time.time()
+            years = []
+            values = []
+            #Slower because it returns series for each each
+            #time complexity : O(n)
+            for index , rows in itter_df.iterrows():
+                years = rows.copy()
+            print( time.time() - start_time )
+            start_time = time.time()
+            #Same as iterrows but little faster because it return tuple 
+            #    for rows in itter_df.itertuples():
+            #        values = rows.rowsappend(pd.Series(rows, index=itter_df.columns), ignore_index=True)
+            print( time.time() - start_time )
+            print(itter_df['value'].apply(sum))
+    
+       
 
 
 # 8
@@ -221,14 +236,14 @@ def find_number():
                     indicate+=correct
                 elif Guessed_number[i] not in guess_number:
                     indicate+=wrong
-                elif Guessed_number[i] not in guess_number:
+                elif Guessed_number[i] in guess_number:
                     indicate+=wrong_position
+        print(indicate)
         if indicate == "CCCCC":
             print("correct")
             break
                 
                 
-            print(indicate)
         print("Try exceeded The number is: " , guess_number)
 
 # 12.
@@ -459,47 +474,65 @@ def calculate_issue_details_count(rows, integration_id):
 #         "value":3}],"value":16}],"value":16}]}
 
 def value_size_threetables():
-       data =  {
-        "name": "packed-chart",
-        "children": [
-            {
-            "env_id": 1485,
-            "children": [
-                {
-                "integration_id": 2566,
-                "children": [
-                    {
-                    "data_set_id": 55396,
-                    "children": [
-                        { "meta_data_id": 322386, "size": 2 },
-                        { "meta_data_id": 322382, "size": 1 },
-                        { "meta_data_id": 322388, "size": 1 },
-                        { "meta_data_id": 322384, "size": 1 }
-                    ], 
-                    "value": 3
-                    },
-                    {
-                    "data_set_id": 55397,
-                    "children": [
-                        { "meta_data_id": 322385, "size": 2 },
-                        { "meta_data_id": 322383, "size": 1 },
-                        { "meta_data_id": 322393, "size": 1 },
-                        { "meta_data_id": 322387, "size": 1 }
-                    ],
-                    "value": 3
-                    }
-                ],
-                "value": 16
-                }
-            ],
-            "value": 16
-            }
-        ]
-        }
-       print(data["children"])
+    with app.app_context(): 
+       name= "packed-chart"
+       chart = {"name" : name , "children": []}  # Initialize the chart
+       unique_env_ids = [result[0] for result in db.session.query(AttributeIssueCount.env_id).distinct().all()]
+       for  env in (unique_env_ids):
+            env_data = {"env": env, "children": []}
+            chart["children"].append(env_data)
+            
+            env_integ = [result[0] for result in AttributeIssueCount.query.filter(AttributeIssueCount.env_id == env).with_entities(AttributeIssueCount.integration_id).distinct().all()]
+            for integ in env_integ:
+                integ_data = {"Integration_id": integ, "children": []}
+                env_data["children"].append(integ_data) 
+                dataset_id = [result[0] for result in AttributeIssueCount.query.filter(AttributeIssueCount.integration_id == integ).with_entities(AttributeIssueCount.data_set_id).distinct().all()]
+                
+                dataset_count = 0
+                for dataset in dataset_id:
+                    dataset_data = {"dataset_id": dataset, "children": []}
+                    integ_data["children"].append(dataset_data)
+                    attr_dataset_id = [result[0] for result in AttributeIssueCount.query.filter(AttributeIssueCount.data_set_id == dataset).with_entities(AttributeIssueCount.meta_data_id).all()]
+                    issue_count = [result[0] for result in AttributeIssueCount.query.filter(AttributeIssueCount.data_set_id == dataset).with_entities(AttributeIssueCount.issue_count).all()]
+                    
+                    value = int(DatasetIssueCount.query.filter(DatasetIssueCount.data_set_id == dataset).with_entities(DatasetIssueCount.issue_count).scalar())
+                    
+                    result = DatasourceIssueCount.query.with_entities(
+                            DatasourceIssueCount.issue_count_dataset_level,
+                            DatasourceIssueCount.issue_count_attribute_level
+                        ).filter(DatasourceIssueCount.integration_id == integ).first()
 
-        
+                    if result:
+                        datasource1, datasource = map(int, result)
+                    else:
+                        # Handle the case where the query doesn't return any results
+                        datasource1 = datasource = 0 
+                    integration_count = datasource + datasource1
+                    dataset_count += value
+                    for attr, count in zip(attr_dataset_id, issue_count):
+                         dataset_count += count
+                         dataset_data["children"].append({"metadata_id":attr , "size":count})
+                    dataset_data["children"].append({"value":value})           
+                env_data["children"].append({"value":dataset_count})
+            chart["children"].append({"value" : integration_count})
+    print(chart)           
                         
+
+
+
+
+
+
+
+
+              
+
+
+
+
+
+
+
 
 
 
@@ -521,13 +554,13 @@ def value_size_threetables():
 # rename_key()
 # min_from_dict()
 # reading_files.count_word("file.txt")
-# Spark_dataframe()
+# pandas_dataframe()
 # lambda_funtion()
 # sort_sorted()
 # circle = circle(5)
 # circle.area("vijay")
 # rectangle  = rectangle(4,3)
-find_number()
+# find_number()
 # working_data()
 # store_details()
-# value_size_threetables()
+value_size_threetables()
