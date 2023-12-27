@@ -24,7 +24,7 @@ def extend_and_addSubList():
     for i in range(len(sub_list)):
      extend_list[2][1][2].extend([sub_list[i]])  # Adding sub_list at a specific nested level
 
-    print(extend_list)
+    print(len(extend_list))
 
 
 # 2. Convert two lists into a dictionary
@@ -132,20 +132,33 @@ class reading_files():
 def pandas_dataframe():
             read_data = pd.read_csv('industry_data.csv')
             itter_df = pd.DataFrame(read_data)
+
             start_time = time.time()
             years = []
             values = []
-            #Slower because it returns series for each each
-            #time complexity : O(n)
-            for index , rows in itter_df.iterrows():
-                years = rows.copy()
-            print( time.time() - start_time )
-            start_time = time.time()
-            #Same as iterrows but little faster because it return tuple 
-            #    for rows in itter_df.itertuples():
-            #        values = rows.rowsappend(pd.Series(rows, index=itter_df.columns), ignore_index=True)
-            print( time.time() - start_time )
-            print(itter_df['value'].apply(sum))
+
+            for index, row in itter_df.iterrows():
+                if row["year"] == 2011 and row ["value"] == "32155":
+                    years.append(row["year"])
+                    values.append(row["value"])
+
+            print("Years:", years)
+            print("Values:", values)
+            print("Time taken itterows:", time.time() - start_time)
+            years1 = []
+            values1 = []
+            for row in itter_df.itertuples():
+                if row.year == 2011 and row.value == "32155":
+                    years1.append(row.year)
+                    values1.append(row.value)
+
+            print("Years:", years)
+            print("Values:", values)
+            print("Time taken itertuples:", time.time() - start_time)
+            
+            new  = itter_df.apply(lambda year:year)
+            
+            
     
        
 
@@ -485,8 +498,7 @@ def value_size_threetables():
        unique_env_ids = [result[0] for result in db.session.query(AttributeIssueCount.env_id).distinct().all()]
        for  env in (unique_env_ids):
             env_data = {"env": env, "children": []}
-            chart["children"].append(env_data)
-            
+            chart["children"].append(env_data)          
             env_integ = [result[0] for result in AttributeIssueCount.query.filter(AttributeIssueCount.env_id == env).with_entities(AttributeIssueCount.integration_id).distinct().all()]
             for integ in env_integ:
                 integ_data = {"Integration_id": integ, "children": []}
@@ -559,13 +571,13 @@ def value_size_threetables():
 # rename_key()
 # min_from_dict()
 # reading_files.count_word("file.txt")
-# pandas_dataframe()
+pandas_dataframe()
 # lambda_funtion()
 # sort_sorted()
 # circle = circle(5)
 # circle.area("vijay")
 # rectangle  = rectangle(4,3)
 # find_number()
-working_data()
+# working_data()
 # store_details()
 # value_size_threetables()
