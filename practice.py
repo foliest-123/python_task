@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 import json
 from collections import defaultdict
-import sys
+from sqlalchemy import Boolean
 
 
 # 1
@@ -326,49 +326,69 @@ class Metrics(db.Model):
     new_row_count = db.Column(db.Integer)
     metric_threshold = db.Column(db.Integer)
     Window_size = db.Column(db.Integer)
-    def __init__(self, refresh_count,new_row_count, metric_threshold ,Window_size):
+    moving_base_average = db.Column(db.Integer)
+    percent_drift = db.Column(db.Integer)
+    threshold_alert = db.Column(Boolean)
+    def __init__(self, refresh_count,new_row_count, metric_threshold ,Window_size, moving_base_average,percent_drift, threshold_alert):
         self.refresh_count = refresh_count
         self.new_row_count = new_row_count
         self.metric_threshold = metric_threshold
         self.Window_size = Window_size
+        self.moving_base_average = moving_base_average
+        self.percent_drift = percent_drift
+        self.threshold_alert = threshold_alert
 with app.app_context():
     db.create_all()
     
-# refresh_id = 1
-# @app.route("/")
-# def get_param(methods=["GET"]):
-#     global refresh_id
-#     base_rowcount = 1000
-#     last_row = Metrics.query.order_by(Metrics.refresh_count.desc()).first()
-#     if last_row is not None:
-#         refresh_id = last_row.refresh_count + 1
-#         new_row_count = int(request.args.get('new_row_count'))
-#         metric_threshold = int(request.args.get('metric_threshold'))
-#         Window_size = int(request.args.get('Window_size'))
-#         new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size)
-#         db.session.add(new_metric)
-#         db.session.commit()
-#         average_rowCount = Metrics.query.with_entities(func.avg(Metrics.new_row_count).label("avg_rowCount")).first()
-#         row_deviation = ((average_rowCount[0] - base_rowcount) / base_rowcount) * 100
-#         print(row_deviation ," " , metric_threshold)
-#         if row_deviation >= metric_threshold:
-#             return "Threshold Alert...!"
-#     else:
-#         new_row_count = int(request.args.get('new_row_count'))
-#         metric_threshold = int(request.args.get('metric_threshold'))
-#         Window_size = int(request.args.get('Window_size'))
-#         if new_row_count is not None and metric_threshold is not None and Window_size is not None:
-#             new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size)
-#             db.session.add(new_metric)
-#             db.session.commit()
-#     return jsonify({
-#         "refresh_id": refresh_id,
-#         "row": new_row_count,
-#         "threshold": metric_threshold,
-#         "window_size": Window_size
-#     })
-# if __name__ == "__main__":
-#     app.run()
+refresh_id = 1
+window_list = []
+@app.route("/")
+def get_param(methods=["GET"]):
+    global refresh_id
+    base_rowcount = 50
+    global window_list
+    moving_base_average = 0
+    percent_drift = 0
+    threshold_alert = False
+    refresh_id+=1
+    last_row = Metrics.query.order_by(Metrics.refresh_count.desc()).first()
+    if last_row is not None:
+        new_row_count = int(request.args.get('new_row_count'))
+        metric_threshold = int(request.args.get('metric_threshold'))
+        Window_size = int(request.args.get('Window_size'))
+        if last_row.moving_base_average == 0:
+            percent_drift = 0
+        else:
+            percent_drift = ((new_row_count -last_row.moving_base_average ) / last_row.moving_base_average) * 100
+        window_list.append(new_row_count)
+        sumofList = sum(window_list)
+        moving_base_average =sumofList  / len(window_list)
+        if percent_drift >= metric_threshold:
+            threshold_alert = True
+        new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size, moving_base_average ,percent_drift ,threshold_alert)
+        db.session.add(new_metric)
+        db.session.commit()
+    else:
+        new_row_count = int(request.args.get('new_row_count'))
+        metric_threshold = int(request.args.get('metric_threshold'))
+        Window_size = int(request.args.get('Window_size'))
+        percent_drift = 0
+        Moving_average = 0
+        new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size,  Moving_average ,percent_drift, threshold_alert)
+        db.session.add(new_metric)
+        db.session.commit()
+        return "Base refresh completed"
+        
+        
+
+    return jsonify({
+        "refresh_id": refresh_id,
+        "row": new_row_count,
+        "threshold": metric_threshold,
+        "window_size": Window_size
+    })
+if __name__ == "__main__":
+    app.run()
 
 
 # 14 . Write a python program to store total issue count and aggregated issue details of attribute_issue_count and  
@@ -571,7 +591,7 @@ def value_size_threetables():
 # rename_key()
 # min_from_dict()
 # reading_files.count_word("file.txt")
-pandas_dataframe()
+# pandas_dataframe()
 # lambda_funtion()
 # sort_sorted()
 # circle = circle(5)
