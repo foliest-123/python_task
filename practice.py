@@ -4,7 +4,7 @@ import time
 from functools import reduce
 import math, random as rd
 from flask import Flask, request, jsonify
-from sqlalchemy import create_engine, Column, Integer, String, JSON, TIMESTAMP
+from sqlalchemy import create_engine, Column, Integer, String, JSON, TIMESTAMP , desc
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 import json
@@ -341,39 +341,46 @@ with app.app_context():
     db.create_all()
     
 refresh_id = 1
-window_list = []
 @app.route("/")
 def get_param(methods=["GET"]):
     global refresh_id
     base_rowcount = 50
-    global window_list
     moving_base_average = 0
     percent_drift = 0
     threshold_alert = False
-    refresh_id+=1
-    last_row = Metrics.query.order_by(Metrics.refresh_count.desc()).first()
+    last_row = Metrics.query.order_by(Metrics.refresh_count.desc()).first() 
+     
     if last_row is not None:
+        refresh_id = last_row.refresh_count + 1 
         new_row_count = int(request.args.get('new_row_count'))
         metric_threshold = int(request.args.get('metric_threshold'))
         Window_size = int(request.args.get('Window_size'))
+        window_list = Metrics.query.order_by(desc(Metrics.refresh_count)).limit(Window_size - 1).all()
+        window_list = [row.new_row_count for row in window_list]
+       
         if last_row.moving_base_average == 0:
-            percent_drift = 0
+                 percent_drift = 0
         else:
-            percent_drift = ((new_row_count -last_row.moving_base_average ) / last_row.moving_base_average) * 100
+                 percent_drift = ((new_row_count -last_row.moving_base_average ) / last_row.moving_base_average) * 100
+                 
         window_list.append(new_row_count)
         sumofList = sum(window_list)
-        moving_base_average =sumofList  / len(window_list)
+        moving_base_average =sumofList / len(window_list)
+        
         if percent_drift >= metric_threshold:
-            threshold_alert = True
+                 threshold_alert = True
+        print(window_list)        
         new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size, moving_base_average ,percent_drift ,threshold_alert)
         db.session.add(new_metric)
         db.session.commit()
+        
     else:
-        new_row_count = int(request.args.get('new_row_count'))
+        new_row_count = base_rowcount
         metric_threshold = int(request.args.get('metric_threshold'))
         Window_size = int(request.args.get('Window_size'))
         percent_drift = 0
         Moving_average = 0
+        refresh_id = 1
         new_metric = Metrics(refresh_id , new_row_count, metric_threshold, Window_size,  Moving_average ,percent_drift, threshold_alert)
         db.session.add(new_metric)
         db.session.commit()
